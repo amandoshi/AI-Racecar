@@ -1,14 +1,20 @@
 let cars = new Array();
+let carsDead = new Array();
 let checkpoints = new Array();
+let counter = 0;
+let ga = new GeneticAlgorithm();
 let track = new Array();
 let spawnPoint;
+let gameSpeed;
 
 const noiseMax = 10;
 const targetCoord = [500, 150];
 const total = 250;
+const trackWidth = 100;
 
 function setup() {
 	createCanvas(1000, 600);
+	gameSpeed = createSlider(1, 10, 1);
 
 	// set track
 	setupTrack();
@@ -21,29 +27,47 @@ function setup() {
 		car.velocity.y = -4;
 		cars.push(car);
 	}
-
-	// car = new Car(spawnCoord[0], spawnCoord[1]);
-	// car.setRays();
-	// car.velocity.x = 0.5;
-	// car.velocity.y = -1;
-
-	// track
 }
 
 function draw() {
 	background(0);
 
 	// ---------------------LOGIC---------------------
-	for (let i = cars.length - 1; i >= 0; i--) {
-		cars[i].update(track, checkpoints);
-		if (cars[i].dead) {
-			cars.splice(i, 1);
-		}
-	}
+	for (let i = 0; i < gameSpeed.value(); i++) {
+		counter++;
 
-	// for (const car of cars) {
-	// 	car.update(track);
-	// }
+		for (let i = cars.length - 1; i >= 0; i--) {
+			cars[i].update(track, checkpoints);
+			if (cars[i].dead) {
+				// store car fitness
+				cars[i].fitness = cars[i].score ** 2;
+				ga.totalFitness += cars[i].fitness;
+
+				carsDead.push(cars.splice(i, 1)[0]);
+			}
+		}
+
+		if (counter == 400 || cars.length == 0) {
+			for (let i = cars.length - 1; i >= 0; i--) {
+				cars[i].fitness = cars[i].score ** 2;
+				ga.totalFitness += cars[i].fitness;
+
+				carsDead.push(cars.splice(i, 1)[0]);
+			}
+
+			// reset counter
+			counter = -1;
+
+			// next generation
+			ga.nextGeneration();
+
+			// noLoop();
+		}
+
+		// if (counter % 100 == 0) {
+		// 	console.log(counter);
+		// }
+	}
 
 	// ---------------------DRAW---------------------
 
@@ -51,11 +75,6 @@ function draw() {
 	for (const edge of track) {
 		edge.draw();
 	}
-
-	// checkpoints
-	// for (const checkPoint of checkPoints) {
-	// 	checkPoint.draw();
-	// }
 
 	// spawn point
 	push();
@@ -80,12 +99,12 @@ function setupTrack() {
 		const yOffset = map(sin(radians(i)), -1, 1, 0, noiseMax);
 
 		// inner track
-		const r1 = map(noise(xOffset, yOffset), 0, 1, 150, 250) - 50;
+		const r1 = map(noise(xOffset, yOffset), 0, 1, 150, 250) - trackWidth / 2;
 		const x1 = cos(radians(i)) * r1 + width / 2;
 		const y1 = sin(radians(i)) * r1 + height / 2;
 
 		// outer track
-		const r2 = r1 + 50 * 2;
+		const r2 = r1 + trackWidth;
 		const x2 = cos(radians(i)) * r2 + width / 2;
 		const y2 = sin(radians(i)) * r2 + height / 2;
 

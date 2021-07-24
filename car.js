@@ -1,5 +1,5 @@
 class Car {
-	constructor(x, y, checkpoint) {
+	constructor(x, y, checkpoint, brain) {
 		// class constants
 		this.height = 10;
 		this.maxSpeed = 4;
@@ -11,9 +11,17 @@ class Car {
 		this.velocity = createVector();
 		this.acceleration = createVector();
 
-		this.brain = new NeuralNetwork(14, 28, 2);
+		if (brain) {
+			this.brain = brain.copy();
+			this.brain.mutate();
+		} else {
+			this.brain = new NeuralNetwork(14, 28, 2);
+		}
+
 		this.checkpoint = checkpoint;
 		this.dead = false;
+		this.fitness;
+		this.score = 1;
 		this.timer = 30;
 		this.rays = new Array();
 	}
@@ -30,6 +38,7 @@ class Car {
 
 			if (distanceSquared < this.velocity.mag() ** 2) {
 				this.checkpoint = (this.checkpoint + 1) % checkpoints.length;
+				this.score++;
 				this.timer = 30;
 			}
 		}
@@ -84,7 +93,7 @@ class Car {
 		inputs.push(this.velocity.mag() / this.maxSpeed);
 
 		const result = this.brain.predict(inputs);
-		console.log(result[0]);
+		// console.log(result[0]);
 		this.velocity.setHeading(
 			this.velocity.heading() + map(result[0], 0, 1, -PI / 2, PI / 2)
 		);
