@@ -1,5 +1,5 @@
 let cars = new Array();
-let checkPoints = new Array();
+let checkpoints = new Array();
 let track = new Array();
 let spawnPoint;
 
@@ -14,8 +14,9 @@ function setup() {
 	setupTrack();
 
 	// set cars
+	const checkpoint = floor(checkpoints.length / 2) + 1;
 	for (let i = 0; i < total; i++) {
-		let car = new Car(spawnPoint.x, spawnPoint.y);
+		let car = new Car(spawnPoint.x, spawnPoint.y, checkpoint);
 		car.setRays();
 		car.velocity.y = -4;
 		cars.push(car);
@@ -27,26 +28,6 @@ function setup() {
 	// car.velocity.y = -1;
 
 	// track
-	// let trackEdgesCoords = [
-	// 	[50, 600, 50, 350],
-	// 	[150, 600, 150, 350],
-	// 	[50, 600, 150, 600],
-	// 	[50, 350, 250, 100],
-	// 	[150, 350, 350, 200],
-	// 	[250, 100, 550, 100],
-	// 	[350, 200, 550, 200],
-	// 	[550, 100, 550, 200],
-	// ];
-	// for (const trackEdgeCoords of trackEdgesCoords) {
-	// 	trackEdges.push(
-	// 		new Boundary(
-	// 			trackEdgeCoords[0],
-	// 			trackEdgeCoords[1],
-	// 			trackEdgeCoords[2],
-	// 			trackEdgeCoords[3]
-	// 		)
-	// 	);
-	// }
 }
 
 function draw() {
@@ -54,7 +35,7 @@ function draw() {
 
 	// ---------------------LOGIC---------------------
 	for (let i = cars.length - 1; i >= 0; i--) {
-		cars[i].update(track);
+		cars[i].update(track, checkpoints);
 		if (cars[i].dead) {
 			cars.splice(i, 1);
 		}
@@ -72,21 +53,21 @@ function draw() {
 	}
 
 	// checkpoints
-	for (const checkPoint of checkPoints) {
-		checkPoint.draw();
-	}
+	// for (const checkPoint of checkPoints) {
+	// 	checkPoint.draw();
+	// }
 
 	// spawn point
 	push();
 	noStroke();
 	fill(255, 0, 0);
-
 	ellipse(spawnPoint.x, spawnPoint.y, 8);
 	pop();
 
-	// car
+	// car & checkpoint
 	for (const car of cars) {
 		car.draw();
+		checkpoints[car.checkpoint].draw();
 	}
 	// car.rayIntersect(trackEdges);
 }
@@ -113,7 +94,7 @@ function setupTrack() {
 		trackOuter.push([x2, y2]);
 
 		// store checkpoints
-		checkPoints.push(new Boundary(x1, y1, x2, y2));
+		checkpoints.push(new Boundary(x1, y1, x2, y2));
 	}
 
 	// store track

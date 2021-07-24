@@ -1,5 +1,5 @@
 class Car {
-	constructor(x, y) {
+	constructor(x, y, checkpoint) {
 		// class constants
 		this.height = 10;
 		this.maxSpeed = 4;
@@ -12,9 +12,27 @@ class Car {
 		this.acceleration = createVector();
 
 		this.brain = new NeuralNetwork(14, 28, 2);
+		this.checkpoint = checkpoint;
 		this.dead = false;
-		this.timer = 100;
+		this.timer = 30;
 		this.rays = new Array();
+	}
+
+	checkpointReached(checkpoints) {
+		let offset = p5.Vector.fromAngle(this.velocity.heading(), this.width / 2);
+		for (const ray of this.rays) {
+			let distanceSquared = ray.intersect(
+				[checkpoints[this.checkpoint]],
+				this.position,
+				offset,
+				this.velocity
+			);
+
+			if (distanceSquared < this.velocity.mag() ** 2) {
+				this.checkpoint = (this.checkpoint + 1) % checkpoints.length;
+				this.timer = 30;
+			}
+		}
 	}
 
 	draw() {
@@ -72,16 +90,18 @@ class Car {
 		);
 	}
 
-	update(walls) {
+	update(walls, checkpoints) {
 		const distances = this.rayIntersect(walls);
 		this.think(distances);
+
+		this.checkpointReached(checkpoints);
 
 		this.velocity.add(this.acceleration);
 		this.position.add(this.velocity);
 
 		this.timer--;
-		// if (!this.timer) {
-		// 	this.dead = true;
-		// }
+		if (!this.timer) {
+			this.dead = true;
+		}
 	}
 }
