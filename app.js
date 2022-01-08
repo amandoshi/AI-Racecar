@@ -6,6 +6,7 @@ let ga = new GeneticAlgorithm();
 let track = new Array();
 let spawnPoint;
 let gameSpeed;
+let generationCount = 0;
 
 const noiseMax = 10;
 const targetCoord = [500, 150];
@@ -17,10 +18,11 @@ function setup() {
 	gameSpeed = createSlider(1, 10, 1);
 
 	// set track
-	setupTrack();
+	setupTrack2();
 
 	// set cars
-	const checkpoint = floor(checkpoints.length / 2) + 1;
+	// const checkpoint = floor(checkpoints.length / 2) + 1;
+	const checkpoint = 0;
 	for (let i = 0; i < total; i++) {
 		let car = new Car(spawnPoint.x, spawnPoint.y, checkpoint);
 		car.setRays();
@@ -47,12 +49,31 @@ function draw() {
 			}
 		}
 
-		if (counter == 400 || cars.length == 0) {
+		if (counter == 4000 || cars.length == 0) {
 			for (let i = cars.length - 1; i >= 0; i--) {
 				cars[i].fitness = cars[i].score ** 2;
 				ga.totalFitness += cars[i].fitness;
 
 				carsDead.push(cars.splice(i, 1)[0]);
+			}
+
+			// find fastest track time
+			let fastestTrackTime = Infinity;
+			let fastestCarIndex = -1;
+			for (let i = 0; i < carsDead.length; i++) {
+				if (carsDead[i].fastestTrackTime < fastestTrackTime) {
+					fastestTrackTime = carsDead[i].fastestTrackTime;
+					fastestCarIndex = i;
+				}
+			}
+			if (fastestTrackTime < Infinity) {
+				const originalFitness = carsDead[fastestCarIndex].fitness;
+				carsDead[fastestCarIndex].score += 500;
+				carsDead[fastestCarIndex].fitness =
+					carsDead[fastestCarIndex].score ** 2;
+				ga.totalFitness += carsDead[fastestCarIndex].fitness - originalFitness;
+
+				console.log(fastestTrackTime);
 			}
 
 			// reset counter
@@ -89,6 +110,49 @@ function draw() {
 		checkpoints[car.checkpoint].draw();
 	}
 	// car.rayIntersect(trackEdges);
+
+	textSize(24);
+	fill(255);
+	rectMode(CORNER);
+	text(`generation: ${generationCount}`, 4, 22);
+}
+
+function setupTrack2() {
+	for (let i = 0; i < trackInner.length; i++) {
+		const x1 = trackInner[i][0];
+		const y1 = trackInner[i][1];
+		const x2 = trackOuter[i][0];
+		const y2 = trackOuter[i][1];
+
+		// store checkpoints
+		checkpoints.push(new Boundary(x1, y1, x2, y2));
+	}
+
+	// store track
+	const trackType = [trackInner, trackOuter];
+	for (let i = 0, length = trackInner.length; i < length; i++) {
+		for (let j = 0; j < 2; j++) {
+			track.push(
+				new Boundary(
+					trackType[j][i][0],
+					trackType[j][i][1],
+					trackType[j][(i + 1) % length][0],
+					trackType[j][(i + 1) % length][1]
+				)
+			);
+		}
+	}
+
+	// set spawn point
+	const startIndex = 0;
+	const spawnX = 760;
+	const spawnY = 520;
+	spawnPoint = createVector(spawnX, spawnY);
+
+	// const startIndex = floor(trackInner.length / 2);
+	// const spawnX = (trackInner[startIndex][0] + trackOuter[startIndex][0]) / 2;
+	// const spawnY = (trackInner[startIndex][1] + trackOuter[startIndex][1]) / 2;
+	// spawnPoint = createVector(spawnX, spawnY);
 }
 
 function setupTrack() {
