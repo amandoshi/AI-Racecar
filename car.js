@@ -1,8 +1,11 @@
+const timer = 200;
+let fastestTrackTimeNow = Infinity;
 class Car {
 	constructor(x, y, checkpoint, brain) {
 		// class constants
 		this.height = 10;
-		this.maxSpeed = 4;
+		this.maxSpeed = 6;
+		this.speed = 2;
 		this.rayLength = 200;
 		this.width = 25;
 
@@ -16,14 +19,18 @@ class Car {
 			this.brain.mutate();
 		} else {
 			this.brain = new NeuralNetwork(14, 28, 2);
+			// this.brain = new NeuralNetwork(15, 28, 2);
 		}
 
 		this.checkpoint = checkpoint;
 		this.dead = false;
 		this.fitness;
 		this.score = 1;
-		this.timer = 30;
+		this.timer = timer;
 		this.rays = new Array();
+
+		this.trackTime = 0;
+		this.fastestTrackTime = Infinity;
 	}
 
 	checkpointReached(checkpoints) {
@@ -39,7 +46,16 @@ class Car {
 			if (distanceSquared < this.velocity.mag() ** 2) {
 				this.checkpoint = (this.checkpoint + 1) % checkpoints.length;
 				this.score++;
-				this.timer = 30;
+				this.timer = timer;
+
+				if (this.checkpoint == 0) {
+					if (this.trackTime < this.fastestTrackTime) {
+						this.fastestTrackTime = this.trackTime;
+					}
+
+					this.trackTime = Infinity;
+					this.score += 25;
+				}
 			}
 		}
 	}
@@ -67,7 +83,7 @@ class Car {
 			let distance = ray.intersect(walls, this.position, offset, this.velocity);
 			distances.push(distance);
 
-			if (distance < this.velocity.mag() ** 2) {
+			if (distance < (this.velocity.mag() * 1.5) ** 2) {
 				this.dead = true;
 			}
 		}
@@ -90,13 +106,24 @@ class Car {
 		}
 
 		// normalise velocity
-		inputs.push(this.velocity.mag() / this.maxSpeed);
+		// inputs.push(this.velocity.mag() / this.maxSpeed);
+		inputs.push(this.velocity.mag() / this.speed);
 
 		const result = this.brain.predict(inputs);
 		// console.log(result[0]);
 		this.velocity.setHeading(
 			this.velocity.heading() + map(result[0], 0, 1, -PI / 2, PI / 2)
 		);
+
+		this.speed += map(result[1], 0, 1, -0.2, 0.2);
+
+		if (this.speed > this.maxSpeed) {
+			this.speed = this.maxSpeed;
+		} else if (this.speed <= 0) {
+			this.speed = 0.1;
+		}
+
+		this.velocity.setMag(this.speed);
 	}
 
 	update(walls, checkpoints) {
@@ -112,5 +139,7 @@ class Car {
 		if (!this.timer) {
 			this.dead = true;
 		}
+
+		this.trackTime++;
 	}
 }

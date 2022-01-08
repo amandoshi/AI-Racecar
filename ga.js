@@ -4,9 +4,11 @@ class GeneticAlgorithm {
 	}
 
 	nextGeneration() {
-		console.log("next generation");
+		// console.log("next generation");
+		generationCount++;
 
-		const checkpoint = floor(checkpoints.length / 2) + 1;
+		// const checkpoint = floor(checkpoints.length / 2) + 1;
+		const checkpoint = 0;
 
 		for (let i = 0; i < total; i++) {
 			let index = this.pickOne();
