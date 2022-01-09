@@ -8,7 +8,7 @@ class Ray {
 		push();
 
 		// set draw state
-		stroke(255);
+		stroke(0);
 
 		// draw ray
 		line(start.x, start.y, end.x, end.y);
@@ -25,7 +25,9 @@ class Ray {
 		);
 
 		// draw ray
-		// this.draw(startPosition, endPosition);
+		if (drawRays) {
+			this.draw(startPosition, endPosition);
+		}
 
 		// https://en.wikipedia.org/wiki/Line%E2%80%93line_intersection
 		let minDistanceSquared = Infinity;
@@ -68,16 +70,18 @@ class Ray {
 
 		// draw intersection
 		if (minDistanceSquared < Infinity) {
-			push();
+			if (drawRayIntersections) {
+				push();
 
-			// draw state
-			stroke(255, 0, 0);
-			fill(255, 0, 0);
+				// draw state
+				stroke(255, 0, 0);
+				fill(255, 0, 0);
 
-			// draw intersection
-			// ellipse(intersect.x, intersect.y, 8);
+				// draw intersection
+				ellipse(intersect.x, intersect.y, 8);
 
-			pop();
+				pop();
+			}
 
 			return minDistanceSquared;
 		} else {
