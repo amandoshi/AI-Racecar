@@ -67,7 +67,7 @@ class Matrix {
 			return;
 		}
 
-		let m = new Matrix(a.numRows, b.numColumns);
+		let matrix = new Matrix(a.numRows, b.numColumns);
 
 		for (let i = 0; i < a.numRows; i++) {
 			for (let j = 0; j < b.numColumns; j++) {
@@ -75,9 +75,9 @@ class Matrix {
 				for (let k = 0; k < a.numColumns; k++) {
 					sum += a.data[i][k] * b.data[k][j];
 				}
-				m.data[i][j] = sum;
+				matrix.data[i][j] = sum;
 			}
 		}
-		return m;
+		return matrix;
 	}
 }
