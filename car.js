@@ -1,36 +1,34 @@
-const timer = 200;
-let fastestTrackTimeNow = Infinity;
 class Car {
 	constructor(x, y, checkpoint, brain) {
 		// class constants
 		this.height = 10;
 		this.maxSpeed = 6;
+		this.minSpeed = 0.1;
 		this.speed = 2;
 		this.rayLength = 200;
 		this.width = 25;
 
-		// object variables
+		// agent variables - motion
 		this.position = createVector(x, y);
 		this.velocity = createVector();
-		this.acceleration = createVector();
 
+		// agent variables - brain
 		if (brain) {
 			this.brain = brain.copy();
 			this.brain.mutate();
 		} else {
 			this.brain = new NeuralNetwork(14, 28, 2);
-			// this.brain = new NeuralNetwork(15, 28, 2);
 		}
 
+		// agent variables - miscellaneous
+		this.age = 0;
 		this.checkpoint = checkpoint;
+		this.checkpointTime = 0;
 		this.dead = false;
-		this.fitness;
-		this.score = 1;
-		this.timer = timer;
-		this.rays = new Array();
-
-		this.trackTime = 0;
 		this.fastestTrackTime = Infinity;
+		this.rays = new Array();
+		this.score = 1;
+		this.trackTime = 0;
 	}
 
 	checkpointReached(checkpoints) {
@@ -43,18 +41,24 @@ class Car {
 				this.velocity
 			);
 
+			// collision with checkpoint
 			if (distanceSquared < this.velocity.mag() ** 2) {
 				this.checkpoint = (this.checkpoint + 1) % checkpoints.length;
 				this.score++;
-				this.timer = timer;
+				this.checkpointTime = 0;
 
+				// lap completed
 				if (this.checkpoint == 0) {
 					if (this.trackTime < this.fastestTrackTime) {
 						this.fastestTrackTime = this.trackTime;
 					}
 
+					if (this.fastestTrackTime < shortestSingleLapTime) {
+						shortestSingleLapTime = this.fastestTrackTime;
+					}
+
 					this.trackTime = Infinity;
-					this.score += 25;
+					this.score += 10;
 				}
 			}
 		}
@@ -67,12 +71,29 @@ class Car {
 		translate(this.position);
 		rotate(this.velocity.heading());
 		rectMode(CENTER);
-		fill(255, 150);
 
 		// draw car
 		rect(0, 0, this.width, this.height);
 
 		pop();
+	}
+
+	move(deltaHeading, deltaSpeed) {
+		// object direction
+		const newHeading = this.velocity.heading() + deltaHeading;
+		this.velocity.setHeading(newHeading);
+
+		// object speed
+		this.speed += deltaSpeed;
+		if (this.speed > this.maxSpeed) {
+			this.speed = this.maxSpeed;
+		} else if (this.speed <= this.minSpeed) {
+			this.speed = this.minSpeed;
+		}
+
+		// update object motion
+		this.velocity.setMag(this.speed);
+		this.position.add(this.velocity);
 	}
 
 	rayIntersect(walls) {
@@ -83,6 +104,7 @@ class Car {
 			let distance = ray.intersect(walls, this.position, offset, this.velocity);
 			distances.push(distance);
 
+			// check if object has collided with wall
 			if (distance < (this.velocity.mag() * 1.5) ** 2) {
 				this.dead = true;
 			}
@@ -106,40 +128,45 @@ class Car {
 		}
 
 		// normalise velocity
-		// inputs.push(this.velocity.mag() / this.maxSpeed);
 		inputs.push(this.velocity.mag() / this.speed);
 
+		// think using NN
 		const result = this.brain.predict(inputs);
-		// console.log(result[0]);
-		this.velocity.setHeading(
-			this.velocity.heading() + map(result[0], 0, 1, -PI / 2, PI / 2)
-		);
+		const deltaHeading = map(result[0], 0, 1, -PI / 2, PI / 2);
+		const deltaSpeed = map(result[1], 0, 1, -0.2, 0.2);
 
-		this.speed += map(result[1], 0, 1, -0.2, 0.2);
-
-		if (this.speed > this.maxSpeed) {
-			this.speed = this.maxSpeed;
-		} else if (this.speed <= 0) {
-			this.speed = 0.1;
-		}
-
-		this.velocity.setMag(this.speed);
+		return { deltaHeading, deltaSpeed };
 	}
 
 	update(walls, checkpoints) {
-		const distances = this.rayIntersect(walls);
-		this.think(distances);
-
-		this.checkpointReached(checkpoints);
-
-		this.velocity.add(this.acceleration);
-		this.position.add(this.velocity);
-
-		this.timer--;
-		if (!this.timer) {
-			this.dead = true;
+		if (this.dead) {
+			return;
 		}
 
+		// predict movement
+		const distances = this.rayIntersect(walls);
+		const { deltaHeading, deltaSpeed } = this.think(distances);
+
+		this.move(deltaHeading, deltaSpeed);
+		this.checkpointReached(checkpoints);
+
+		// increment agent age
+		this.age++;
+		this.checkpointTime++;
 		this.trackTime++;
+
+		if (this.isDead) {
+			this.dead = true;
+		}
+	}
+
+	get fitness() {
+		return this.score ** 2;
+	}
+
+	get isDead() {
+		return (
+			this.age >= carLifeSpan || this.checkpointTime >= carMaxCheckpointTime
+		);
 	}
 }

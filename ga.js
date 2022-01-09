@@ -3,16 +3,27 @@ class GeneticAlgorithm {
 		this.totalFitness = 0;
 	}
 
-	nextGeneration() {
-		// console.log("next generation");
-		generationCount++;
+	calculateTotalFitness() {
+		for (let i = 0; i < total; i++) {
+			this.totalFitness += carsDead[i].fitness;
+		}
+	}
 
-		// const checkpoint = floor(checkpoints.length / 2) + 1;
-		const checkpoint = 0;
+	nextGeneration() {
+		this.calculateTotalFitness();
+
+		let checkpoint;
+		if (customTrack) {
+			checkpoint = 0;
+		} else {
+			checkpoint = floor(checkpoints.length / 2) + 1;
+		}
 
 		for (let i = 0; i < total; i++) {
 			let index = this.pickOne();
+			// console.log(index, i);
 
+			// create new generation of self-driving agents
 			let car = new Car(
 				spawnPoint.x,
 				spawnPoint.y,
@@ -20,28 +31,25 @@ class GeneticAlgorithm {
 				carsDead[index].brain
 			);
 			car.setRays();
-			car.velocity.y = -4;
+			car.velocity.x = 1;
 			cars.push(car);
-
-			// cars.push(
-			// 	new Car(spawnPoint[0], spawnPoint[1], checkpoint, carsDead[index].brain)
-
-			// );
 		}
 
 		// reset
 		carsDead = [];
 		this.totalFitness = 0;
+		generationCount++;
 	}
 
 	pickOne() {
 		let index = 0;
 		let fitnessAim = this.totalFitness * Math.random();
+
 		while (fitnessAim > 0) {
 			fitnessAim -= carsDead[index].fitness;
 			index++;
 		}
-		index--;
-		return index;
+
+		return index - 1;
 	}
 }

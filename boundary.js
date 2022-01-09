@@ -5,14 +5,6 @@ class Boundary {
 	}
 
 	draw() {
-		push();
-
-		// set drawing state
-		stroke(255);
-
-		// draw line
 		line(this.start.x, this.start.y, this.end.x, this.end.y);
-
-		pop();
 	}
 }

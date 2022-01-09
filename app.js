@@ -1,100 +1,118 @@
+// self-driving agents
+const carLifeSpan = 3000;
+const carMaxCheckpointTime = 120;
+
 let cars = new Array();
 let carsDead = new Array();
+
+// track
+const customTrack = true;
+const noiseMax = 10;
+const trackWidth = 100;
+
 let checkpoints = new Array();
-let counter = 0;
-let ga = new GeneticAlgorithm();
 let track = new Array();
+
+// genetic algorithm
+let ga = new GeneticAlgorithm();
+let generationCount = 0;
+const total = 250;
+
+// inital game settings
+const drawRays = false;
+const drawRayIntersections = false;
+
 let spawnPoint;
 let gameSpeed;
-let generationCount = 0;
-
-const noiseMax = 10;
-const targetCoord = [500, 150];
-const total = 250;
-const trackWidth = 100;
+let counter = 0;
+let shortestSingleLapTime = Infinity;
 
 function setup() {
 	createCanvas(1000, 600);
+
+	// slider to control the game iterations per second
 	gameSpeed = createSlider(1, 10, 1);
 
-	// set track
-	setupTrack2();
+	if (customTrack) {
+		setupCustomTrack();
+	} else {
+		setupRandomTrack();
+	}
 
-	// set cars
-	// const checkpoint = floor(checkpoints.length / 2) + 1;
-	const checkpoint = 0;
+	// initalise self-driving agents
+	let checkpoint;
+	if (customTrack) {
+		checkpoint = 0;
+	} else {
+		checkpoint = floor(checkpoints.length / 2) + 1;
+	}
+
 	for (let i = 0; i < total; i++) {
 		let car = new Car(spawnPoint.x, spawnPoint.y, checkpoint);
 		car.setRays();
-		car.velocity.y = -4;
+		car.velocity.x = 1;
 		cars.push(car);
 	}
 }
 
 function draw() {
-	background(0);
-
 	// ---------------------LOGIC---------------------
 	for (let i = 0; i < gameSpeed.value(); i++) {
-		counter++;
-
 		for (let i = cars.length - 1; i >= 0; i--) {
 			cars[i].update(track, checkpoints);
-			if (cars[i].dead) {
-				// store car fitness
-				cars[i].fitness = cars[i].score ** 2;
-				ga.totalFitness += cars[i].fitness;
 
+			// identify inactive self-driving agents
+			if (cars[i].dead) {
 				carsDead.push(cars.splice(i, 1)[0]);
 			}
 		}
 
-		if (counter == 4000 || cars.length == 0) {
-			for (let i = cars.length - 1; i >= 0; i--) {
-				cars[i].fitness = cars[i].score ** 2;
-				ga.totalFitness += cars[i].fitness;
-
-				carsDead.push(cars.splice(i, 1)[0]);
-			}
-
+		// check if all self-driving agents are inactive
+		if (cars.length == 0) {
 			// find fastest track time
 			let fastestTrackTime = Infinity;
 			let fastestCarIndex = -1;
+
 			for (let i = 0; i < carsDead.length; i++) {
 				if (carsDead[i].fastestTrackTime < fastestTrackTime) {
 					fastestTrackTime = carsDead[i].fastestTrackTime;
 					fastestCarIndex = i;
 				}
 			}
-			if (fastestTrackTime < Infinity) {
-				const originalFitness = carsDead[fastestCarIndex].fitness;
-				carsDead[fastestCarIndex].score += 500;
-				carsDead[fastestCarIndex].fitness =
-					carsDead[fastestCarIndex].score ** 2;
-				ga.totalFitness += carsDead[fastestCarIndex].fitness - originalFitness;
 
-				console.log(fastestTrackTime);
+			// increase score for fastest car
+			if (fastestTrackTime < Infinity) {
+				carsDead[fastestCarIndex].score += 50;
 			}
 
-			// reset counter
-			counter = -1;
-
-			// next generation
 			ga.nextGeneration();
-
-			// noLoop();
 		}
-
-		// if (counter % 100 == 0) {
-		// 	console.log(counter);
-		// }
 	}
 
 	// ---------------------DRAW---------------------
+	background(200);
 
 	// track
-	for (const edge of track) {
-		edge.draw();
+	if (customTrack) {
+		// outer track line
+		fill(100);
+		beginShape();
+		for (const coord of trackOuter) {
+			vertex(coord[0], coord[1]);
+		}
+		endShape(CLOSE);
+
+		// inner track line
+		fill(200);
+		beginShape();
+		for (const coord of trackInner) {
+			vertex(coord[0], coord[1]);
+		}
+		endShape(CLOSE);
+	} else {
+		for (const edge of track) {
+			edge.draw();
+		}
 	}
 
 	// spawn point
@@ -106,18 +124,33 @@ function draw() {
 
 	// car & checkpoint
 	for (const car of cars) {
+		push();
+		fill(255, 150);
 		car.draw();
-		checkpoints[car.checkpoint].draw();
-	}
-	// car.rayIntersect(trackEdges);
+		pop();
 
+		push();
+		stroke(0, 255, 0, 10);
+		checkpoints[car.checkpoint].draw();
+		pop();
+	}
+
+	// text settings
 	textSize(24);
-	fill(255);
-	rectMode(CORNER);
+	fill(0);
+
+	// current generation text
 	text(`generation: ${generationCount}`, 4, 22);
+
+	// current shortest lap time text
+	let shortestSingleLapTimeString = shortestSingleLapTime;
+	if (shortestSingleLapTime == Infinity) {
+		shortestSingleLapTimeString = "∞";
+	}
+	text(`shortest lap time / frame: ${shortestSingleLapTimeString}`, 200, 22);
 }
 
-function setupTrack2() {
+function setupCustomTrack() {
 	for (let i = 0; i < trackInner.length; i++) {
 		const x1 = trackInner[i][0];
 		const y1 = trackInner[i][1];
@@ -148,14 +181,9 @@ function setupTrack2() {
 	const spawnX = 760;
 	const spawnY = 520;
 	spawnPoint = createVector(spawnX, spawnY);
-
-	// const startIndex = floor(trackInner.length / 2);
-	// const spawnX = (trackInner[startIndex][0] + trackOuter[startIndex][0]) / 2;
-	// const spawnY = (trackInner[startIndex][1] + trackOuter[startIndex][1]) / 2;
-	// spawnPoint = createVector(spawnX, spawnY);
 }
 
-function setupTrack() {
+function setupRandomTrack() {
 	let trackInner = new Array();
 	let trackOuter = new Array();
 	for (let i = 0; i < 360; i += 15) {
