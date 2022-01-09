@@ -1,4 +1,4 @@
-const trackInner = [
+const trackOuter = [
 	[880, 560],
 	[960, 480],
 	[960, 320],
@@ -13,7 +13,7 @@ const trackInner = [
 	[40, 320],
 	[120, 560],
 ];
-const trackOuter = [
+const trackInner = [
 	[840, 480],
 	[880, 440],
 	[880, 340],
