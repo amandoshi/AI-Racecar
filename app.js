@@ -130,7 +130,7 @@ function draw() {
 		pop();
 
 		push();
-		stroke(0, 255, 0, 10);
+		stroke(0, 255, 0, 50);
 		checkpoints[car.checkpoint].draw();
 		pop();
 	}
